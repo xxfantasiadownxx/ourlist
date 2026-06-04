@@ -500,8 +500,14 @@ function MemberView({ member, tasks, allMembers, onToggleTask, onAddTask, onEdit
     .filter(t => !t.completed)
     .sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
 
+  const FOUR_HOURS_MS = 4 * 60 * 60 * 1000;
+  const nowMs = Date.now();
   const completedTasks = tasks
-    .filter(t => t.completed)
+    .filter(t => {
+      if (!t.completed || !t.completedAt) return false;
+      // Only show completed tasks within the 4-hour display window
+      return (nowMs - new Date(t.completedAt).getTime()) < FOUR_HOURS_MS;
+    })
     .sort((a, b) => (b.completedAt || 0) - (a.completedAt || 0));
 
   const earnedMinutes = member.earnedMinutes || 0;
@@ -699,6 +705,8 @@ export default function App() {
   const [activeTab, setActiveTab] = useState(null);
   const [loaded, setLoaded] = useState(false);
   const saveTimeout = useRef(null);
+  const tasksRef = useRef([]);
+  const membersRef = useRef([]);
 
   useEffect(() => {
     fetch(`${API}/api/data`)
@@ -733,6 +741,10 @@ export default function App() {
     }, 500);
   }, []);
 
+  // Keep refs in sync so the interval always sees fresh state
+  useEffect(() => { tasksRef.current = tasks; }, [tasks]);
+  useEffect(() => { membersRef.current = members; }, [members]);
+
   // Task lifecycle rules:
   // - One-time:  delete 4 hours after completion
   // - Daily:     hide 4 hours after completion; reset at midnight (next calendar day)
@@ -745,8 +757,12 @@ export default function App() {
       const todayStr = localDateStr(now);
       const FOUR_HOURS = 4 * 60 * 60 * 1000;
 
+      // Always read from refs — never from the stale closure
+      const currentTasks = tasksRef.current;
+      const currentMembers = membersRef.current;
+
       let changed = false;
-      const updated = tasks.map(t => {
+      const updated = currentTasks.map(t => {
         if (!t.completed || !t.completedAt) return t;
 
         const age = now - new Date(t.completedAt);
@@ -757,7 +773,7 @@ export default function App() {
           return t;
         }
 
-        // Recurring: keep showing as completed for 4 hours regardless
+        // Recurring: keep showing as completed for 4 hours
         if (age < FOUR_HOURS) return t;
 
         // Past 4 hours — check if midnight on the due date has arrived
@@ -781,14 +797,14 @@ export default function App() {
 
       if (changed) {
         setTasks(updated);
-        persistData(members, updated);
+        persistData(currentMembers, updated);
       }
     };
 
     check();
     const interval = setInterval(check, 60 * 1000);
     return () => clearInterval(interval);
-  }, [tasks, members, loaded, persistData]);
+  }, [loaded, persistData]);  // no tasks/members dep — reads from refs instead
 
   function addMember(member) {
     const m = { earnedMinutes: 0, ...member };
