@@ -38,4 +38,5 @@ ports:
 - **Frontend**: React 18, served by nginx
 - **Backend**: Node.js / Express, JSON file storage
 - **Deployment**: Docker Compose (two containers + one named volume)
+
 (this is a 100% vibe coded project)
