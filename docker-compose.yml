@@ -1,6 +1,6 @@
 services:
   backend:
-    build: ./backend
+    image: ghcr.io/xxfantasiadownxx/ourlist-backend:latest
     container_name: ourlist-backend
     restart: unless-stopped
     environment:
@@ -10,10 +10,7 @@ services:
       - ./ourlist-data:/data
 
   frontend:
-    build:
-      context: ./frontend
-      args:
-        REACT_APP_API_URL: ""
+    image: ghcr.io/xxfantasiadownxx/ourlist-frontend:latest
     container_name: ourlist-frontend
     restart: unless-stopped
     ports:
