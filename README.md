@@ -72,3 +72,5 @@ docker compose pull && docker compose up -d
 - **Frontend** — React 18, served by nginx
 - **Backend** — Node.js / Express, JSON file storage
 - **Infrastructure** — Docker Compose, named volume for persistence
+
+(this is a 100% vibecoded project)
